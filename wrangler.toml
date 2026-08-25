@@ -1,0 +1,49 @@
+#=============================================================
+# 勤工助学工时填报系统 —— Cloudflare Pages + D1 配置
+# 全部使用 Cloudflare 免费额度，无任何付费依赖
+#=============================================================
+
+name = "qgzx-hours"
+compatibility_date = "2024-11-01"
+
+# Pages 静态资源目录（前端 H5 页面）
+# Functions 自动读取项目根目录下的 functions/ 文件夹
+pages_build_output_dir = "public"
+
+#-------------------------------------------------------------
+# D1 数据库绑定
+# database_id 请替换为你自己执行 `wrangler d1 create qgzx-hours`
+# 之后终端返回的真实 id
+#-------------------------------------------------------------
+[[d1_databases]]
+binding = "DB"
+database_name = "qgzx-hours"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+#-------------------------------------------------------------
+# 环境变量（非敏感）
+# 敏感变量 ADMIN_PASSWORD / AUTH_SECRET 请用命令行写成 secret：
+#   wrangler pages secret put ADMIN_PASSWORD
+#   wrangler pages secret put AUTH_SECRET
+# 或在 Cloudflare 控制台 Pages 项目 → 设置 → 环境变量 中添加
+#-------------------------------------------------------------
+[vars]
+SITE_NAME = "勤工助学工时填报"
+# 公开广场是否允许未登录浏览：1 = 允许任何人浏览（对应需求"所有人都可以浏览，互相监督"），0 = 必须登录
+PLAZA_PUBLIC = "1"
+# 单次填报允许的最大时长（分钟）
+MAX_MINUTES_PER_RECORD = "720"
+# 允许补报的最长天数（天）
+BACKFILL_DAYS = "31"
+# 提交后允许自行修改/删除的窗口（分钟）
+EDIT_WINDOW_MINUTES = "10"
+# 新记录默认状态：approved = 提交即自动通过（管理员仅做抽查/调整/移除）；pending = 需逐条审核
+DEFAULT_STATUS = "approved"
+# 单个时间段最小时长（分钟），防止误填
+MIN_SLOT_MINUTES = "10"
+
+#-------------------------------------------------------------
+# 本地开发（wrangler pages dev）使用本地 SQLite 模拟 D1
+#-------------------------------------------------------------
+[dev]
+port = 8788

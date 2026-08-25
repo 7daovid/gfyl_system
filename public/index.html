@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#2563eb">
+<title>勤工助学工时填报</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-inner">
+    <div>
+      <h1>勤工助学工时填报系统</h1>
+      <div class="sub">如实填报 · 公开透明 · 互相监督</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="seg" id="seg">
+    <button class="on" data-tab="student">学生填报</button>
+    <button data-tab="admin">管理员</button>
+  </div>
+
+  <!-- 学生登录 -->
+  <div class="card" id="pane-student">
+    <div class="card-t">学号登录</div>
+    <div class="card-tip">仅勤工助学名单内的学号可以登录填报，校外人员无法提交。</div>
+    <div class="field">
+      <label>学号 <span class="req">*</span></label>
+      <input type="text" id="sno" inputmode="numeric" autocomplete="off" placeholder="请输入本人学号">
+    </div>
+    <button class="btn btn-block btn-lg" id="btn-stu">进入填报</button>
+    <div class="notice mt14">
+      提示：登录后可以填报工时、查看个人记录，并在「公开广场」浏览全体同学的原始填报记录，互相监督。
+    </div>
+  </div>
+
+  <!-- 管理员登录 -->
+  <div class="card hide" id="pane-admin">
+    <div class="card-t">管理员登录</div>
+    <div class="card-tip">后台可配置单价、审核工时、导出报表、查看操作日志。</div>
+    <div class="field">
+      <label>管理员密码 <span class="req">*</span></label>
+      <input type="password" id="pwd" autocomplete="off" placeholder="请输入后台密码">
+    </div>
+    <button class="btn btn-block btn-lg" id="btn-admin">登录后台</button>
+  </div>
+
+  <div class="footer">
+    勤工助学工时管理 · 数据托管于 Cloudflare Pages + D1
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var segBtns = document.querySelectorAll('#seg button');
+  for (var i = 0; i < segBtns.length; i++) {
+    segBtns[i].onclick = function () {
+      for (var j = 0; j < segBtns.length; j++) segBtns[j].className = '';
+      this.className = 'on';
+      var t = this.getAttribute('data-tab');
+      document.getElementById('pane-student').className = 'card' + (t === 'student' ? '' : ' hide');
+      document.getElementById('pane-admin').className = 'card' + (t === 'admin' ? '' : ' hide');
+    };
+  }
+
+  var sno = document.getElementById('sno');
+  var pwd = document.getElementById('pwd');
+
+  function loginStudent() {
+    var v = (sno.value || '').trim();
+    if (!v) { App.toast('请输入学号'); return; }
+    App.spin(true);
+    App.post('/api/auth/student-login', { student_no: v }).then(function (d) {
+      App.setAuth(d.token, d);
+      App.spin(false);
+      location.href = 'student';
+    }).catch(function (e) {
+      App.spin(false);
+      App.toast(e.message || '登录失败');
+    });
+  }
+
+  function loginAdmin() {
+    var v = pwd.value || '';
+    if (!v) { App.toast('请输入密码'); return; }
+    App.spin(true);
+    App.post('/api/auth/admin-login', { password: v }).then(function (d) {
+      App.setAuth(d.token, d);
+      App.spin(false);
+      if (d.default_password) App.toast('提示：仍在使用默认密码，请尽快修改环境变量', 3000);
+      setTimeout(function () { location.href = 'admin'; }, d.default_password ? 900 : 0);
+    }).catch(function (e) {
+      App.spin(false);
+      App.toast(e.message || '登录失败');
+    });
+  }
+
+  document.getElementById('btn-stu').onclick = loginStudent;
+  document.getElementById('btn-admin').onclick = loginAdmin;
+  sno.addEventListener('keydown', function (e) { if (e.key === 'Enter') loginStudent(); });
+  pwd.addEventListener('keydown', function (e) { if (e.key === 'Enter') loginAdmin(); });
+
+  // 已登录直接跳转
+  if (App.getToken()) {
+    App.get('/api/auth/me').then(function (d) {
+      if (d && d.logged_in) location.href = d.role === 'admin' ? 'admin' : 'student';
+    }).catch(function () { App.clearAuth(); });
+  }
+})();
+</script>
+</body>
+</html>

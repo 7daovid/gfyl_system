@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#2563eb">
+<title>管理后台 · 勤工助学工时</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-inner">
+    <div>
+      <h1 id="view-title">填报审核</h1>
+      <div class="sub">管理员后台 · 单价与工资仅本页面可见</div>
+    </div>
+    <button class="tb-btn" id="btn-out">退出</button>
+  </div>
+</div>
+
+<div class="wrap page-pad">
+
+  <!-- ============ 审核 ============ -->
+  <section id="v-review">
+    <div class="stat-grid c3" id="rv-stat"></div>
+
+    <div class="chips mt14" id="rv-status">
+      <button class="on" data-s="">全部</button>
+      <button data-s="approved">已审核</button>
+    </div>
+
+    <div class="card">
+      <div class="row2">
+        <div><label class="muted">开始日期</label><input type="date" id="rv-from"></div>
+        <div><label class="muted">结束日期</label><input type="date" id="rv-to"></div>
+      </div>
+      <div class="mt8"><input type="text" id="rv-key" placeholder="搜索姓名 / 学号 / 备注"></div>
+      <div class="btn-row mt8">
+        <button class="btn btn-sm" id="rv-search">查询</button>
+        <button class="btn btn-sm btn-line" id="rv-reset">重置</button>
+      </div>
+    </div>
+
+    <div id="rv-list"></div>
+    <div class="pager" id="rv-pager"></div>
+  </section>
+
+  <!-- ============ 名单 ============ -->
+  <section id="v-students" class="hide">
+    <div class="card">
+      <div class="card-t">批量导入白名单</div>
+      <div class="card-tip">每行一条，格式：学号,姓名,院系（姓名与院系可省略）。仅名单内学号可登录填报。</div>
+      <textarea id="st-text" style="min-height:120px" placeholder="20230001,张三,计算机学院&#10;20230002,李四&#10;20230003"></textarea>
+      <div class="field mt8">
+        <label>导入模式</label>
+        <select id="st-mode">
+          <option value="append">追加 / 更新（推荐）</option>
+          <option value="replace">覆盖（先停用全部旧名单再导入）</option>
+        </select>
+      </div>
+      <button class="btn btn-block" id="st-import">开始导入</button>
+    </div>
+
+    <div class="card">
+      <div class="card-t">名单管理</div>
+      <div class="card-tip" id="st-stat"></div>
+      <div class="row2">
+        <input type="text" id="st-key" placeholder="搜索学号 / 姓名 / 院系">
+        <select id="st-active">
+          <option value="">全部状态</option>
+          <option value="1">仅启用</option>
+          <option value="0">仅停用</option>
+        </select>
+      </div>
+      <div class="btn-row mt8">
+        <button class="btn btn-sm" id="st-search">查询</button>
+        <button class="btn btn-sm btn-ghost" id="st-add">单个新增</button>
+      </div>
+    </div>
+
+    <div id="st-list"></div>
+    <div class="pager" id="st-pager"></div>
+  </section>
+
+  <!-- ============ 工作类型与单价 ============ -->
+  <section id="v-types" class="hide">
+    <div class="notice warn">
+      单价仅在本页面可见。学生端接口 <b>/api/work-types</b> 只返回类型 id 与名称，不含任何金额字段。
+    </div>
+    <div class="card">
+      <div class="card-t">工作类型与小时单价</div>
+      <div class="card-tip">修改单价会写入操作日志；已被填报引用的类型只能停用，不能删除。</div>
+      <button class="btn btn-block btn-ghost" id="wt-add">新增工作类型</button>
+    </div>
+    <div id="wt-list"></div>
+  </section>
+
+  <!-- ============ 统计导出 ============ -->
+  <section id="v-stats" class="hide">
+    <div class="card">
+      <div class="card-t">统计区间</div>
+      <div class="row2">
+        <div><label class="muted">开始日期</label><input type="date" id="sx-from"></div>
+        <div><label class="muted">结束日期</label><input type="date" id="sx-to"></div>
+      </div>
+      <div class="btn-row mt8">
+        <button class="btn btn-sm" id="sx-go">统计</button>
+        <button class="btn btn-sm btn-line" id="sx-month">本月</button>
+        <button class="btn btn-sm btn-line" id="sx-30">近 30 天</button>
+      </div>
+    </div>
+
+    <div class="stat-grid" id="sx-stat"></div>
+
+    <div class="card">
+      <div class="card-t">导出 Excel 报表</div>
+      <div class="card-tip">导出区间同上。两份报表分别是学生原始填报与审核核算结果。</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" style="flex:1" id="sx-exp-raw">原始填报表</button>
+        <button class="btn" style="flex:1" id="sx-exp-audit">审核核算表</button>
+      </div>
+      <div class="notice warn mt14" id="sx-wechat-tip">
+        微信内置浏览器通常会拦截文件下载，导出报表请使用电脑浏览器或手机自带浏览器打开本页面。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-t">按工作类型汇总</div>
+      <div class="tbl-wrap"><table id="sx-type"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-t">按学生汇总（含应发工资）</div>
+      <div class="tbl-wrap"><table id="sx-tbl"></table></div>
+      <div class="pager" id="sx-pager"></div>
+    </div>
+  </section>
+
+  <!-- ============ 操作日志 ============ -->
+  <section id="v-logs" class="hide">
+    <div class="notice">
+      所有修改行为均被永久记录：操作人、时间、原值、修改后值、修改理由。数据库已设置触发器，日志<b>不可修改、不可删除</b>。
+    </div>
+    <div class="card">
+      <div class="row2">
+        <div><label class="muted">开始日期</label><input type="date" id="lg-from"></div>
+        <div><label class="muted">结束日期</label><input type="date" id="lg-to"></div>
+      </div>
+      <div class="mt8"><input type="text" id="lg-key" placeholder="搜索操作人 / 动作 / 理由 / 记录号"></div>
+      <div class="mt8"><select id="lg-action"><option value="">全部动作</option></select></div>
+      <div class="btn-row mt8">
+        <button class="btn btn-sm" id="lg-search">查询</button>
+        <button class="btn btn-sm btn-line" id="lg-reset">重置</button>
+      </div>
+    </div>
+    <div id="lg-list"></div>
+    <div class="pager" id="lg-pager"></div>
+  </section>
+
+  <div class="footer">勤工助学工时填报系统 · 管理后台</div>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <a class="on" data-v="review"><span class="ic">✅</span>审核</a>
+  <a data-v="students"><span class="ic">👥</span>名单</a>
+  <a data-v="types"><span class="ic">💰</span>单价</a>
+  <a data-v="stats"><span class="ic">📊</span>统计</a>
+  <a data-v="logs"><span class="ic">🗂️</span>日志</a>
+</nav>
+
+<script src="assets/app.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>

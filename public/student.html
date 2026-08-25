@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#2563eb">
+<title>工时填报 · 勤工助学</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-inner">
+    <div>
+      <h1 id="view-title">工时填报</h1>
+      <div class="sub" id="who">加载中…</div>
+    </div>
+    <button class="tb-btn" id="btn-out">退出</button>
+  </div>
+</div>
+
+<div class="wrap page-pad">
+
+  <!-- ============ 1. 填报 ============ -->
+  <section id="v-report">
+    <div class="card">
+      <div class="card-t">新增工时记录</div>
+      <div class="card-tip">请如实填写，提交后 <b id="win-tip">10</b> 分钟内可自行修改或删除。同一天可添加多个时间段。</div>
+
+      <div class="field">
+        <label>工作日期 <span class="req">*</span></label>
+        <input type="date" id="f-date">
+      </div>
+
+      <div id="seg-wrap"></div>
+
+      <button class="btn btn-block btn-ghost mt8" id="btn-add-seg">＋ 新增时间段</button>
+
+      <button class="btn btn-block btn-lg mt14" id="btn-submit">提交填报</button>
+      <div class="notice mt14">
+        所有填报记录会在「公开广场」向全体同学公开，接受互相监督；请勿虚报工时。
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. 公开广场 ============ -->
+  <section id="v-plaza" class="hide">
+    <div class="card">
+      <div class="card-t">公开广场</div>
+      <div class="card-tip" id="plaza-tip">全体同学最近 30 天的原始填报记录，人人可见，互相监督。</div>
+      <div class="row2">
+        <input type="text" id="p-key" placeholder="搜索姓名或学号">
+        <input type="date" id="p-date">
+      </div>
+      <div class="btn-row mt8">
+        <button class="btn btn-sm" id="p-search">查询</button>
+        <button class="btn btn-sm btn-line" id="p-reset">重置</button>
+      </div>
+    </div>
+    <div id="plaza-list"></div>
+    <div class="loadmore" id="plaza-more"></div>
+  </section>
+
+  <!-- ============ 3. 我的记录 ============ -->
+  <section id="v-mine" class="hide">
+    <div class="stat-grid c3" id="mine-stat"></div>
+    <div class="chips mt14" id="mine-filter">
+      <button class="on" data-s="">全部</button>
+      <button data-s="approved">已审核</button>
+    </div>
+    <div id="mine-list"></div>
+    <div class="pager" id="mine-pager"></div>
+  </section>
+
+  <div class="footer">勤工助学工时填报系统</div>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <a class="on" data-v="report"><span class="ic">✍️</span>填报</a>
+  <a data-v="plaza"><span class="ic">🏛️</span>公开广场</a>
+  <a data-v="mine"><span class="ic">📋</span>我的记录</a>
+</nav>
+
+<script src="assets/app.js"></script>
+<script src="assets/student.js"></script>
+</body>
+</html>
