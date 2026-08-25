@@ -18,7 +18,7 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "qgzx-hours"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "7dc60610-16b9-4b1c-9c15-b757f1986b89"
 
 #-------------------------------------------------------------
 # 环境变量（非敏感）
