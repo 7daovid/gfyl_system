@@ -117,6 +117,12 @@
         '<div class="field" style="margin:0"><label>开始</label><input type="time" step="600" data-st></div>' +
         '<div class="field" style="margin:0"><label>结束</label><input type="time" step="600" data-et></div>' +
       '</div>' +
+      '<div class="quick-times">' +
+        '<button type="button" class="qt-btn" data-qt="08:10,11:30">正常上午</button>' +
+        '<button type="button" class="qt-btn" data-qt="13:40,17:00">正常下午</button>' +
+        '<button type="button" class="qt-btn" data-qt="08:30,11:30">暑期上午</button>' +
+        '<button type="button" class="qt-btn" data-qt="14:00,17:00">暑期下午</button>' +
+      '</div>' +
       '<div class="field" style="margin:8px 0 0"><label>工作类型 <span class="req">*</span></label><select data-ty>' + typeOptionsHtml() + '</select></div>' +
       '<div class="field" style="margin:8px 0 0"><label>备注（可选）</label><textarea data-rm maxlength="200" placeholder="本时间段工作内容，例如：图书馆三楼书籍整理"></textarea></div>';
 
@@ -126,6 +132,19 @@
         reIndex();
       };
     }
+
+    // 绑定快捷时间段按钮
+    var qtBtns = div.querySelectorAll('.qt-btn');
+    for (var q = 0; q < qtBtns.length; q++) {
+      qtBtns[q].onclick = (function (btn) {
+        return function () {
+          var parts = btn.getAttribute('data-qt').split(',');
+          div.querySelector('[data-st]').value = parts[0];
+          div.querySelector('[data-et]').value = parts[1];
+        };
+      })(qtBtns[q]);
+    }
+
     document.getElementById('seg-wrap').appendChild(div);
   }
 

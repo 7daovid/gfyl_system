@@ -217,6 +217,19 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   border-radius: 50%; font-size: 14px; line-height: 1; cursor: pointer;
 }
 
+/* 快捷时间段按钮 */
+.quick-times {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px;
+}
+.qt-btn {
+  border: 1px solid var(--line); background: #fff; color: var(--text-2);
+  padding: 7px 6px; border-radius: 8px; font-size: 12.5px; font-family: inherit;
+  cursor: pointer; transition: all .15s;
+}
+.qt-btn:active {
+  background: var(--brand); border-color: var(--brand); color: #fff;
+}
+
 .chips { display: flex; gap: 7px; overflow-x: auto; padding: 2px 0 8px; -webkit-overflow-scrolling: touch; }
 .chips button {
   flex: none; border: 1px solid var(--line); background: #fff; color: var(--text-2);
