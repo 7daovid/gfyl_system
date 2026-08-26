@@ -3,6 +3,7 @@
    注意：本文件不涉及任何单价、工资、核算工时字段
    ============================================================ */
 (function () {
+  console.log('=== student-v4.js 已加载 ===');
   var me = null;
   var workTypes = [];
   var editWindow = 10;
@@ -106,6 +107,7 @@
 
   /* ---------------- 时间段 ---------------- */
   function addSegment() {
+    console.log('addSegment 被调用');
     var idx = document.querySelectorAll('#seg-wrap .tslot').length + 1;
     var div = document.createElement('div');
     div.className = 'tslot';
@@ -119,8 +121,10 @@
       '</div>' +
       '<div class="field" style="margin:8px 0 0"><label>工作类型 <span class="req">*</span></label><select data-ty>' + typeOptionsHtml() + '</select></div>' +
       '<div class="field" style="margin:8px 0 0"><label>备注（可选）</label><textarea data-rm maxlength="200" placeholder="本时间段工作内容，例如：图书馆三楼书籍整理"></textarea></div>';
+    console.log('innerHTML 赋值完成，div.children.length:', div.children.length);
 
     // 用 createElement 方式添加快捷时间段按钮，确保一定能显示
+    console.log('开始创建快捷按钮');
     var quickDiv = document.createElement('div');
     quickDiv.className = 'quick-times';
     var quickSlots = [
@@ -142,13 +146,16 @@
         quickDiv.appendChild(btn);
       })(quickSlots[s]);
     }
+    console.log('快捷按钮创建完成，quickDiv.children.length:', quickDiv.children.length);
     // 插入到时间选择框后面
     var row2 = div.querySelector('.row2');
+    console.log('row2:', row2, 'row2.nextSibling:', row2 ? row2.nextSibling : null);
     if (row2 && row2.nextSibling) {
       div.insertBefore(quickDiv, row2.nextSibling);
     } else {
       div.appendChild(quickDiv);
     }
+    console.log('快捷按钮已插入到 div，div.querySelectorAll(.qt-btn).length:', div.querySelectorAll('.qt-btn').length);
 
     if (idx > 1) {
       div.querySelector('[data-del-seg]').onclick = function () {
@@ -158,6 +165,7 @@
     }
 
     document.getElementById('seg-wrap').appendChild(div);
+    console.log('addSegment 完成，页面上 .qt-btn 数量:', document.querySelectorAll('.qt-btn').length);
   }
 
   function reIndex() {
