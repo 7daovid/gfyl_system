@@ -63,6 +63,8 @@ export async function onRequestPost(context) {
     const end = clean(seg.end_time, 5);
     const typeId = toInt(seg.work_type_id, 0);
     const remark = clean(seg.remark, 200);
+    const stars = toInt(seg.stars, 0);
+    if (stars < 0 || stars > 50) throw new ApiError('第 ' + (i + 1) + ' 个时间段的小星星数量需在 0 ~ 50 之间', 400);
 
     if (!isValidHHMM(start) || !isValidHHMM(end)) {
       throw new ApiError('第 ' + (i + 1) + ' 个时间段的时间格式不正确（应为 HH:MM）', 400);
@@ -96,7 +98,7 @@ export async function onRequestPost(context) {
       throw new ApiError('该日累计填报时长已超过 24 小时，请检查', 400);
     }
 
-    newRows.push({ start, end, minutes: slot, typeId: type.id, typeName: type.name, remark, status: defaultStatus });
+    newRows.push({ start, end, minutes: slot, typeId: type.id, typeName: type.name, remark, stars, status: defaultStatus });
   }
 
   /* ---------- 写入 ---------- */
@@ -105,11 +107,11 @@ export async function onRequestPost(context) {
     const r = newRows[i];
     const res = await env.DB.prepare(
       `INSERT INTO records
-        (student_no, student_name, work_date, start_time, end_time, minutes, work_type_id, work_type_name, remark,
+        (student_no, student_name, work_date, start_time, end_time, minutes, work_type_id, work_type_name, remark, stars,
          status, approved_minutes, reviewer, reviewed_ms, reviewed_at, created_ms, created_at, updated_ms, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      user.studentNo, stu.name, workDate, r.start, r.end, r.minutes, r.typeId, r.typeName, r.remark,
+      user.studentNo, stu.name, workDate, r.start, r.end, r.minutes, r.typeId, r.typeName, r.remark, r.stars,
       r.status,
       r.status === 'approved' ? r.minutes : null,           // 默认通过时核算=填报
       r.status === 'approved' ? '系统自动通过' : '',
@@ -126,7 +128,7 @@ export async function onRequestPost(context) {
       targetType: 'record',
       targetId: newId,
       oldValue: '',
-      newValue: workDate + ' ' + r.start + '-' + r.end + ' / ' + r.typeName + ' / ' + minutesText(r.minutes) + (r.remark ? ' / 备注:' + r.remark : ''),
+      newValue: workDate + ' ' + r.start + '-' + r.end + ' / ' + r.typeName + ' / ' + minutesText(r.minutes) + (r.stars ? ' / ⭐' + r.stars + '颗' : '') + (r.remark ? ' / 备注:' + r.remark : ''),
       reason: r.status === 'approved' ? '提交即自动通过' : '',
       ip: clientIp(context.request)
     });

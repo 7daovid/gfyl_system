@@ -157,6 +157,52 @@
     }
     console.log('快捷按钮已插入到 div，div.querySelectorAll(.qt-btn).length:', div.querySelectorAll('.qt-btn').length);
 
+    // ============ 小星星奖励控件（默认 0 颗，点击展开后加减） ============
+    var starDiv = document.createElement('div');
+    starDiv.className = 'star-row';
+    var starToggle = document.createElement('button');
+    starToggle.type = 'button';
+    starToggle.className = 'star-toggle';
+    starToggle.textContent = '⭐ 我获得小星星啦';
+    starDiv.appendChild(starToggle);
+    var starPicker = document.createElement('div');
+    starPicker.className = 'star-picker hide';
+    var starMinus = document.createElement('button');
+    starMinus.type = 'button';
+    starMinus.className = 'star-btn';
+    starMinus.textContent = '−';
+    var starNum = document.createElement('span');
+    starNum.className = 'star-num';
+    starNum.textContent = '0';
+    var starPlus = document.createElement('button');
+    starPlus.type = 'button';
+    starPlus.className = 'star-btn';
+    starPlus.textContent = '+';
+    starPicker.appendChild(starMinus);
+    starPicker.appendChild(starNum);
+    starPicker.appendChild(starPlus);
+    starDiv.appendChild(starPicker);
+
+    starToggle.onclick = function () {
+      starPicker.classList.toggle('hide');
+    };
+    starMinus.onclick = function () {
+      var v = parseInt(starNum.textContent, 10) || 0;
+      if (v > 0) starNum.textContent = v - 1;
+    };
+    starPlus.onclick = function () {
+      var v = parseInt(starNum.textContent, 10) || 0;
+      if (v < 50) starNum.textContent = v + 1;
+    };
+
+    // 插入到快捷按钮之后
+    var starRef = quickDiv.nextSibling || null;
+    if (starRef) {
+      div.insertBefore(starDiv, starRef);
+    } else {
+      div.appendChild(starDiv);
+    }
+
     if (idx > 1) {
       div.querySelector('[data-del-seg]').onclick = function () {
         if (div.parentNode) div.parentNode.removeChild(div);
@@ -192,9 +238,10 @@
       var et = segs[i].querySelector('[data-et]').value;
       var ty = parseInt(segs[i].querySelector('[data-ty]').value, 10) || 0;
       var rm = segs[i].querySelector('[data-rm]').value.trim();
+      var sts = parseInt(segs[i].querySelector('[data-star-num]').textContent, 10) || 0;
       if (!st || !et) { App.toast('请填写第 ' + (i + 1) + ' 个时间段的起止时间'); return; }
       if (!ty) { App.toast('请选择第 ' + (i + 1) + ' 个时间段的工作类型'); return; }
-      segments.push({ start_time: st, end_time: et, work_type_id: ty, remark: rm });
+      segments.push({ start_time: st, end_time: et, work_type_id: ty, remark: rm, stars: sts });
     }
 
     var btn = document.getElementById('btn-submit');
@@ -259,7 +306,8 @@
           '<div class="item-h"><div class="item-name">' + App.esc(r.name) +
           '<span class="item-no">' + App.esc(r.student_no) + '</span></div>' +
           '<span class="badge b-info">' + App.esc(r.work_type_name) + '</span></div>' +
-          '<div class="item-meta"><span>📅 ' + App.esc(r.work_date) + '</span>' + when + '</div>' +
+          '<div class="item-meta"><span>📅 ' + App.esc(r.work_date) + '</span>' + when +
+          (r.stars > 0 ? '<span class="stars-tag">⭐ ' + r.stars + ' 颗</span>' : '') + '</div>' +
           (r.remark ? '<div class="item-remark">' + App.esc(r.remark) + '</div>' : '') +
           '</div>';
       }
@@ -295,6 +343,7 @@
       document.getElementById('mine-stat').innerHTML =
         '<div class="stat"><div class="v">' + (s.count || 0) + '</div><div class="k">累计条数</div></div>' +
         '<div class="stat"><div class="v">' + App.minutesText(s.total_minutes || 0) + '</div><div class="k">累计填报时长</div></div>' +
+        '<div class="stat"><div class="v">⭐' + (s.total_stars || 0) + '</div><div class="k">累计星星</div></div>' +
         '<div class="stat"><div class="v">' + (s.approved || 0) + '</div><div class="k">已审核</div></div>';
 
       renderMine();
@@ -321,7 +370,8 @@
         '<div class="item-h"><div class="item-name">' + App.esc(r.work_date) +
         '<span class="item-no">' + App.esc(r.work_type_name) + '</span></div>' +
         '<span class="badge ' + App.statusClass(r.status) + '">' + App.esc(r.status_text) + '</span></div>' +
-        '<div class="item-meta"><span>' + when + '</span></div>' +
+        '<div class="item-meta"><span>' + when + '</span>' +
+        (r.stars > 0 ? '<span class="stars-tag">⭐ ' + r.stars + ' 颗</span>' : '') + '</div>' +
         (r.remark ? '<div class="item-remark">' + App.esc(r.remark) + '</div>' : '') +
         '<div class="item-foot"><span class="item-time">提交于 ' + App.esc(r.created_at) + '</span>' +
         (r.editable
@@ -405,6 +455,7 @@
         '<div class="field" style="margin:0"><label>结束时间</label><input type="time" step="600" data-et value="' + App.esc(rec.end_time) + '"></div>' +
       '</div>' +
       '<div class="field" style="margin:8px 0 0"><label>工作类型</label><select data-ty>' + typeOptionsHtml() + '</select></div>' +
+      '<div class="field" style="margin:8px 0 0"><label>小星星（颗，0-50）</label><input type="number" min="0" max="50" data-sts value="' + (rec.stars || 0) + '"></div>' +
       '<div class="field" style="margin:8px 0 0"><label>备注</label><textarea data-r maxlength="200">' + App.esc(rec.remark) + '</textarea></div>' +
       '<div class="btn-row mt14"><button class="btn btn-line" style="flex:1" data-cancel>取消</button>' +
       '<button class="btn" style="flex:1" data-save>保存修改</button></div>'
@@ -429,7 +480,8 @@
         id: rec.id,
         work_date: s.q('[data-d]').value,
         start_time: st, end_time: et,
-        work_type_id: ty, remark: rm
+        work_type_id: ty, remark: rm,
+        stars: parseInt(s.q('[data-sts]').value, 10) || 0
       }).then(function () {
         App.spin(false); s.close(); App.toast('修改成功'); plaza.loaded = false; loadMine();
       }).catch(function (e) { App.spin(false); App.toast(e.message); });

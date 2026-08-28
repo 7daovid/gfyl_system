@@ -19,6 +19,7 @@ export const ACTION = {
   STUDENT_IMPORT: '导入学号白名单',
   STUDENT_UPDATE: '修改白名单',
   STUDENT_DELETE: '移除白名单',
+  SETTING_UPDATE: '修改系统设置',
   ADMIN_LOGIN: '管理员登录',
   EXPORT: '导出报表'
 };

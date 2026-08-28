@@ -41,6 +41,8 @@ export async function onRequestPost(context) {
   const end = clean(body.end_time, 5);
   const typeId = toInt(body.work_type_id, 0);
   const remark = clean(body.remark, 200);
+  const stars = toInt(body.stars, 0);
+  if (stars < 0 || stars > 50) throw new ApiError('小星星数量需在 0 ~ 50 之间', 400);
 
   if (!isValidDate(workDate)) throw new ApiError('请选择正确的工作日期', 400);
   const today = bjDate();
@@ -69,10 +71,10 @@ export async function onRequestPost(context) {
   const now = Date.now();
   await env.DB.prepare(
     `UPDATE records
-       SET work_date = ?, start_time = ?, end_time = ?, minutes = ?, work_type_id = ?, work_type_name = ?, remark = ?,
+       SET work_date = ?, start_time = ?, end_time = ?, minutes = ?, work_type_id = ?, work_type_name = ?, remark = ?, stars = ?,
            status = ?, approved_minutes = ?, updated_ms = ?, updated_at = ?
      WHERE id = ? AND student_no = ?`
-  ).bind(workDate, start, end, slot, type.id, type.name, remark,
+  ).bind(workDate, start, end, slot, type.id, type.name, remark, stars,
          newStatus, newApproved, now, bjTime(now), id, user.studentNo).run();
 
   await writeLog(env, {
@@ -82,7 +84,7 @@ export async function onRequestPost(context) {
     targetType: 'record',
     targetId: id,
     oldValue: rec.work_date + ' ' + rec.start_time + '-' + rec.end_time + ' / ' + rec.work_type_name + ' / ' + minutesText(rec.minutes) + (rec.remark ? ' / 备注:' + rec.remark : ''),
-    newValue: workDate + ' ' + start + '-' + end + ' / ' + type.name + ' / ' + minutesText(slot) + (remark ? ' / 备注:' + remark : ''),
+    newValue: workDate + ' ' + start + '-' + end + ' / ' + type.name + ' / ' + minutesText(slot) + (stars ? ' / ⭐' + stars + '颗' : '') + (remark ? ' / 备注:' + remark : ''),
     reason: '学生在' + win + '分钟内自助修改',
     ip: clientIp(context.request)
   });

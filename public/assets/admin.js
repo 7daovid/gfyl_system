@@ -140,6 +140,7 @@
         '<span>📅 ' + App.esc(r.work_date) + '</span>' +
         '<span>' + App.esc(r.work_type_name) + '</span>' +
         slotText +
+        (r.stars > 0 ? '<span class="stars-tag">⭐ ' + r.stars + ' 颗（¥' + App.esc(r.star_amount) + '）</span>' : '') +
         (r.status === 'approved' ? '<span>核算 <b>' + App.esc(r.acc_hours) + '</b></span><span>单价 ¥' + App.esc(r.rate) + '/h</span><span>应发 <b>¥' + App.esc(r.amount) + '</b></span>' : '') +
       '</div>' +
       adjTag +
@@ -400,9 +401,36 @@
   }
 
   /* ============================================================
-     三、工作类型与单价
+     三、工作类型与单价（含小星星单价）
      ============================================================ */
+  function loadStarSettings() {
+    var saved = false;
+    function bindSave() {
+      if (saved) return;
+      saved = true;
+      document.getElementById('star-save').onclick = function () {
+        var v = parseFloat(document.getElementById('star-rate').value);
+        if (isNaN(v) || v < 0) { App.toast('请输入有效的小星星单价'); return; }
+        App.reasonBox('修改小星星单价', '单价属于金额配置，修改会写入不可删除的操作日志。', '例如：每颗奖励 15 元').then(function (reason) {
+          if (reason === null) return;
+          App.spin(true);
+          App.post('/api/admin/settings', { star_rate: v, reason: reason }).then(function (d) {
+            App.spin(false); App.toast('小星星单价已更新为 ' + d.star_rate + ' 元/颗');
+            loadStarSettings();
+          }).catch(function (e) { App.spin(false); App.toast(e.message); });
+        });
+      };
+    }
+    App.get('/api/admin/settings').then(function (d) {
+      var r = d.star_rate || 0;
+      document.getElementById('star-rate').value = r;
+      document.getElementById('star-rate-tip').textContent = '当前小星星单价：' + r + ' 元/颗';
+      bindSave();
+    }).catch(function (e) { App.toast(e.message); bindSave(); });
+  }
+
   function loadWorkTypes() {
+    loadStarSettings();
     App.get('/api/admin/work-types/list').then(function (d) {
       var list = d.list || [];
       var box = document.getElementById('wt-list');
@@ -536,29 +564,43 @@
     App.get('/api/admin/stats?page=' + stats.page + '&size=' + stats.size + rangeQ()).then(function (d) {
       stats.total = d.total || 0;
       var s = d.summary || {};
+      var starRate = d.star_rate || 0;
       document.getElementById('sx-stat').innerHTML =
         statBox(s.students || 0, '参与学生') +
         statBox(s.records || 0, '已审核记录') +
         statBox(s.acc_hours || 0, '核算总时长') +
-        statBox('¥' + (s.wage || 0), '应发工资') +
-        statBox(s.pending || 0, '待审核');
+        statBox('⭐' + (s.stars || 0), '小星星') +
+        statBox('¥' + (s.wage || 0), '工时工资') +
+        statBox('¥' + (s.total_amount || 0), '应发合计(含星)');
 
       // 按类型
       var trows = (d.by_type || []).map(function (t) {
-        return '<tr><td>' + App.esc(t.name) + '</td><td>¥' + t.rate + '/h</td><td>' + t.count + '</td><td>' + t.acc_hours + '</td><td>¥' + t.wage + '</td></tr>';
+        return '<tr><td>' + App.esc(t.name) + '</td><td>¥' + t.rate + '/h</td><td>' + t.count + '</td><td>' + t.acc_hours + '</td>' +
+          '<td>⭐' + t.stars + '</td><td>¥' + t.star_amount + '</td><td>¥' + t.wage + '</td><td>¥' + t.total_amount + '</td></tr>';
       }).join('');
       document.getElementById('sx-type').innerHTML =
-        '<thead><tr><th>类型</th><th>单价</th><th>条数</th><th>核算时长</th><th>应发</th></tr></thead><tbody>' +
-        (trows || '<tr><td colspan="5" class="muted">无数据</td></tr>') + '</tbody>';
+        '<thead><tr><th>类型</th><th>单价</th><th>条数</th><th>核算时长</th><th>星星</th><th>星星金额</th><th>工时工资</th><th>应发合计</th></tr></thead><tbody>' +
+        (trows || '<tr><td colspan="8" class="muted">无数据</td></tr>') + '</tbody>';
 
       // 按学生
       var rows = (d.list || []).map(function (r) {
         return '<tr><td>' + App.esc(r.student_name) + '</td><td>' + App.esc(r.student_no) + '</td><td>' + r.count + '</td>' +
-          '<td>' + r.acc_hours + '</td><td>¥' + r.wage + '</td></tr>';
+          '<td>' + r.acc_hours + '</td><td>⭐' + r.stars + '</td><td>¥' + r.star_amount + '</td>' +
+          '<td>¥' + r.wage + '</td><td>¥' + r.total_amount + '</td></tr>';
       }).join('');
       document.getElementById('sx-tbl').innerHTML =
-        '<thead><tr><th>姓名</th><th>学号</th><th>条数</th><th>核算时长</th><th>应发</th></tr></thead><tbody>' +
-        (rows || '<tr><td colspan="5" class="muted">无数据</td></tr>') + '</tbody>';
+        '<thead><tr><th>姓名</th><th>学号</th><th>条数</th><th>核算时长</th><th>星星</th><th>星星金额</th><th>工时工资</th><th>应发合计</th></tr></thead><tbody>' +
+        (rows || '<tr><td colspan="8" class="muted">无数据</td></tr>') + '</tbody>';
+
+      // 汇总说明
+      var tip = document.getElementById('sx-star-tip');
+      if (!tip) {
+        tip = document.createElement('div');
+        tip.id = 'sx-star-tip';
+        tip.className = 'muted mt8';
+        document.getElementById('sx-stat').appendChild(tip);
+      }
+      tip.textContent = '小星星单价：' + starRate + ' 元/颗，已计入「应发合计」。';
 
       renderStatsPager();
     }).catch(function (e) { App.toast(e.message); });

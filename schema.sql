@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS records (
   work_type_id      INTEGER NOT NULL,
   work_type_name    TEXT    NOT NULL DEFAULT '',-- 冗余，防止类型改名影响历史
   remark            TEXT    NOT NULL DEFAULT '',
+  stars             INTEGER NOT NULL DEFAULT 0, -- 该时间段获得的小星星数量（荣誉奖励，学生自愿填写）★学生接口只返回数量，绝不返回单价
   status            TEXT    NOT NULL DEFAULT 'pending',
   approved_minutes  INTEGER,                    -- 核算工时（分钟）★敏感字段，仅管理员可见
   reject_reason     TEXT    NOT NULL DEFAULT '',

@@ -162,6 +162,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); backgrou
 /* ---------------- 统计小卡 ---------------- */
 .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .stat-grid.c3 { grid-template-columns: repeat(3, 1fr); }
+.stat-grid.c4 { grid-template-columns: repeat(4, 1fr); }
 .stat {
   background: #fff; border-radius: 12px; padding: 12px; text-align: center; box-shadow: var(--shadow);
 }
@@ -232,6 +233,28 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .qt-btn:active {
   background: var(--brand); border-color: var(--brand); color: #fff;
 }
+
+/* 小星星奖励控件（学生填报：展开加减数量） */
+.star-row { margin-top: 8px; }
+.star-toggle {
+  width: 100%; border: 1px dashed #f0c36d; background: #fffaf0; color: #b8860b;
+  padding: 8px 10px; border-radius: 9px; font-size: 13px; font-family: inherit;
+  cursor: pointer; text-align: center;
+}
+.star-toggle:active { background: #fff3d6; }
+.star-picker {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  margin-top: 8px; background: #fffaf0; border: 1px solid #f2d9a0; border-radius: 9px; padding: 8px 12px;
+}
+.star-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid #e6b95c; background: #fff; color: #b8860b;
+  font-size: 19px; line-height: 1; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.star-btn:active { background: #ffe9b8; }
+.star-num { font-size: 20px; font-weight: 700; color: #b8860b; min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.stars-tag { color: #b8860b; font-weight: 600; }
 
 .chips { display: flex; gap: 7px; overflow-x: auto; padding: 2px 0 8px; -webkit-overflow-scrolling: touch; }
 .chips button {

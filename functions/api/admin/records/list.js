@@ -2,7 +2,7 @@
  * GET /api/admin/records/list?page&size&status&from&to&keyword&type_id
  * 管理员审核列表（含核算工时、单价、金额 —— 管理员专属）
  */
-import { ok, pageParams, clean, toInt, money, minutesText, minutesToHours, STATUS_TEXT } from '../../../_lib/util.js';
+import { ok, pageParams, clean, toInt, toFloat, money, minutesText, minutesToHours, STATUS_TEXT } from '../../../_lib/util.js';
 
 function bindAll(stmt, args) {
   return args && args.length ? stmt.bind.apply(stmt, args) : stmt;
@@ -12,6 +12,10 @@ export async function onRequestGet(context) {
   const env = context.env;
   const url = new URL(context.request.url);
   const pg = pageParams(url, 20, 100);
+
+  // 读取小星星单价（每颗价值，元）
+  const starRow = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind('star_rate').first();
+  const starRate = money(toFloat(starRow && starRow.value, 15));
 
   const status = clean(url.searchParams.get('status'), 12);
   const from = clean(url.searchParams.get('from'), 10);
@@ -73,6 +77,10 @@ export async function onRequestGet(context) {
       adjusted: r.approved_minutes !== null && r.approved_minutes !== undefined && toInt(r.approved_minutes, 0) !== toInt(r.minutes, 0),
       rate: rate,
       amount: r.status === 'approved' ? money(accMin / 60 * rate) : 0,
+      stars: toInt(r.stars, 0),
+      star_rate: starRate,
+      star_amount: money(toInt(r.stars, 0) * starRate),
+      total_amount: r.status === 'approved' ? money(accMin / 60 * rate + toInt(r.stars, 0) * starRate) : 0,
       merged_into: r.merged_into || null,
       merged_count: toInt(r.merged_count, 0),
       reviewer: r.reviewer || '',

@@ -19,7 +19,7 @@ export async function onRequestGet(context) {
     .bind(user.studentNo).first();
 
   const rs = await env.DB.prepare(
-    `SELECT id, work_date, start_time, end_time, minutes, work_type_name, remark, status,
+    `SELECT id, work_date, start_time, end_time, minutes, work_type_name, remark, stars, status,
             merged_into, approved_minutes, created_ms, created_at
        FROM records
       WHERE student_no = ?
@@ -41,6 +41,7 @@ export async function onRequestGet(context) {
       duration_text: minutesText(r.minutes),
       work_type_name: r.work_type_name,
       remark: r.remark,
+      stars: toInt(r.stars, 0),
       status: r.status,
       status_text: STATUS_TEXT[r.status] || r.status,
       merged_into: r.merged_into || null,
@@ -50,10 +51,11 @@ export async function onRequestGet(context) {
     };
   });
 
-  // 汇总（只统计学生自己填报的原始时长，不涉及核算与工资）
+  // 汇总（只统计学生自己填报的原始时长与星星，不涉及单价与工资）
   const sum = await env.DB.prepare(
     `SELECT
         COALESCE(SUM(minutes),0) AS total_min,
+        COALESCE(SUM(stars),0) AS total_stars,
         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_cnt,
         COUNT(*) AS all_cnt
      FROM records WHERE student_no = ?`
@@ -68,6 +70,7 @@ export async function onRequestGet(context) {
     summary: {
       total_minutes: toInt(sum && sum.total_min, 0),
       total_text: minutesText(sum && sum.total_min),
+      total_stars: toInt(sum && sum.total_stars, 0),
       approved: toInt(sum && sum.approved_cnt, 0),
       count: toInt(sum && sum.all_cnt, 0)
     }

@@ -7,7 +7,7 @@
  * 为控制 D1 读取量与 Worker 内存，分批 1000 条循环取，最多导出 MAX_ROWS 条。
  */
 import {
-  ok, clean, toInt, money, minutesToHours, minutesText, bjDate, bjDateOffset, ApiError, STATUS_TEXT, clientIp
+  ok, clean, toInt, toFloat, money, minutesToHours, minutesText, bjDate, bjDateOffset, ApiError, STATUS_TEXT, clientIp
 } from '../../_lib/util.js';
 import { buildXlsx, xlsxResponse } from '../../_lib/xlsx.js';
 import { writeLog, ACTION } from '../../_lib/log.js';
@@ -61,7 +61,7 @@ export async function onRequestGet(context) {
 
   if (type === 'raw') {
     /* ============ 原始填报表 ============ */
-    const header = ['序号', '学号', '姓名', '工作日期', '工作类型', '填报时长(小时)', '填报时长', '备注', '提交时间', '当前状态'];
+    const header = ['序号', '学号', '姓名', '工作日期', '工作类型', '小星星(颗)', '填报时长(小时)', '填报时长', '备注', '提交时间', '当前状态'];
     const data = rows.map(function (r, i) {
       return [
         i + 1,
@@ -69,6 +69,7 @@ export async function onRequestGet(context) {
         r.student_name,
         r.work_date,
         r.work_type_name,
+        toInt(r.stars, 0),
         minutesToHours(r.minutes),
         minutesText(r.minutes),
         r.remark || '',
@@ -80,15 +81,20 @@ export async function onRequestGet(context) {
       name: '原始填报',
       header: header,
       rows: data,
-      widths: [6, 14, 10, 12, 16, 14, 14, 30, 20, 10]
+      widths: [6, 14, 10, 12, 16, 10, 14, 14, 30, 20, 10]
     }];
     filename = '原始填报表_' + range + '.xlsx';
   } else {
     /* ============ 审核核算表 ============ */
+    // 读取小星星单价
+    const starRow = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind('star_rate').first();
+    const starRate = money(toFloat(starRow && starRow.value, 15));
+
     const header = [
       '序号', '学号', '姓名', '工作日期', '工作类型',
       '学生填报(小时)', '核算工时(小时)', '是否调整',
-      '小时单价(元)', '应发金额(元)',
+      '小星星(颗)', '小星星金额(元)',
+      '小时单价(元)', '应发金额(元)', '应发合计(元)',
       '状态', '审核人', '审核时间', '备注'
     ];
     const data = [];
@@ -99,7 +105,10 @@ export async function onRequestGet(context) {
       const accMin = (r.approved_minutes === null || r.approved_minutes === undefined)
         ? toInt(r.minutes, 0) : toInt(r.approved_minutes, 0);
       const rate = Number(r.rate) || 0;
+      const starCnt = toInt(r.stars, 0);
+      const starAmt = money(starCnt * starRate);
       const amount = r.status === 'approved' ? money(accMin / 60 * rate) : 0;
+      const totalAmt = r.status === 'approved' ? money(amount + starAmt) : 0;
       const adjusted = (r.approved_minutes !== null && r.approved_minutes !== undefined &&
         toInt(r.approved_minutes, 0) !== toInt(r.minutes, 0)) ? '是' : '';
 
@@ -112,8 +121,11 @@ export async function onRequestGet(context) {
         minutesToHours(r.minutes),
         minutesToHours(accMin),
         adjusted,
+        starCnt,
+        starAmt,
         rate,
         amount,
+        totalAmt,
         STATUS_TEXT[r.status] || r.status,
         r.reviewer || '',
         r.reviewed_at || '',
@@ -123,27 +135,30 @@ export async function onRequestGet(context) {
       if (r.status === 'approved') {
         const k = r.student_no;
         if (!perStudent[k]) {
-          perStudent[k] = { no: r.student_no, name: r.student_name, cnt: 0, accMin: 0, amount: 0 };
+          perStudent[k] = { no: r.student_no, name: r.student_name, cnt: 0, accMin: 0, stars: 0, amount: 0 };
         }
         perStudent[k].cnt += 1;
         perStudent[k].accMin += accMin;
-        perStudent[k].amount = money(perStudent[k].amount + amount);
+        perStudent[k].stars += starCnt;
+        perStudent[k].amount = money(perStudent[k].amount + totalAmt);
       }
     }
 
     const sumRows = Object.keys(perStudent).map(function (k) { return perStudent[k]; })
       .sort(function (a, b) { return b.amount - a.amount; })
       .map(function (s, i) {
-        return [i + 1, String(s.no), s.name, s.cnt, minutesToHours(s.accMin), s.amount];
+        return [i + 1, String(s.no), s.name, s.cnt, minutesToHours(s.accMin), s.stars, money(s.stars * starRate), s.amount];
       });
 
-    let grandHours = 0, grandAmount = 0;
+    let grandHours = 0, grandStars = 0, grandStarAmt = 0, grandAmount = 0;
     for (let i = 0; i < sumRows.length; i++) {
       grandHours += Number(sumRows[i][4]) || 0;
-      grandAmount += Number(sumRows[i][5]) || 0;
+      grandStars += Number(sumRows[i][5]) || 0;
+      grandStarAmt += Number(sumRows[i][6]) || 0;
+      grandAmount += Number(sumRows[i][7]) || 0;
     }
     if (sumRows.length) {
-      sumRows.push(['', '合计', '', '', Math.round(grandHours * 100) / 100, money(grandAmount)]);
+      sumRows.push(['', '合计', '', '', Math.round(grandHours * 100) / 100, grandStars, money(grandStarAmt), money(grandAmount)]);
     }
 
     sheets = [
@@ -151,13 +166,13 @@ export async function onRequestGet(context) {
         name: '审核核算明细',
         header: header,
         rows: data,
-        widths: [6, 14, 10, 12, 16, 14, 14, 10, 12, 12, 10, 10, 20, 24]
+        widths: [6, 14, 10, 12, 16, 14, 14, 10, 10, 12, 12, 12, 12, 10, 10, 20, 24]
       },
       {
         name: '薪资汇总',
-        header: ['序号', '学号', '姓名', '已审核条数', '核算工时(小时)', '应发金额(元)'],
+        header: ['序号', '学号', '姓名', '已审核条数', '核算工时(小时)', '小星星(颗)', '小星星金额(元)', '应发合计(元)'],
         rows: sumRows,
-        widths: [6, 16, 12, 14, 16, 16]
+        widths: [6, 16, 12, 14, 16, 12, 14, 16]
       }
     ];
     filename = '审核核算表_' + range + '.xlsx';

@@ -52,7 +52,7 @@ export async function onRequestGet(context) {
 
   const rs = await bindAll(
     env.DB.prepare(
-      'SELECT student_name, student_no, work_date, start_time, end_time, minutes, work_type_name, remark ' +
+      'SELECT student_name, student_no, work_date, start_time, end_time, minutes, work_type_name, remark, stars ' +
       'FROM records ' + whereSql +
       ' ORDER BY work_date DESC, id DESC LIMIT ? OFFSET ?'
     ),
@@ -69,7 +69,8 @@ export async function onRequestGet(context) {
       time_range: (r.start_time && r.end_time) ? (r.start_time + ' - ' + r.end_time) : '',
       duration_text: minutesText(r.minutes),
       work_type_name: r.work_type_name,
-      remark: r.remark || ''
+      remark: r.remark || '',
+      stars: toInt(r.stars, 0)
     };
   });
 

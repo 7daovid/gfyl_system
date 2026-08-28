@@ -90,6 +90,16 @@
       单价仅在本页面可见。学生端接口 <b>/api/work-types</b> 只返回类型 id 与名称，不含任何金额字段。
     </div>
     <div class="card">
+      <div class="card-t">⭐ 小星星奖励设置</div>
+      <div class="card-tip">老师给学生发放的小星星，每颗按固定价值计入报酬。学生端只能看到自己填写的星星数量，看不到单价。</div>
+      <div class="field" style="margin:0">
+        <label>每颗小星星价值（元）</label>
+        <input type="number" step="0.5" min="0" id="star-rate" placeholder="15">
+      </div>
+      <button class="btn btn-block mt8" id="star-save">保存小星星单价</button>
+      <div class="muted mt8" id="star-rate-tip"></div>
+    </div>
+    <div class="card">
       <div class="card-t">工作类型与小时单价</div>
       <div class="card-tip">修改单价会写入操作日志；已被填报引用的类型只能停用，不能删除。</div>
       <button class="btn btn-block btn-ghost" id="wt-add">新增工作类型</button>

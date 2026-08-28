@@ -2,7 +2,7 @@
  * GET /api/admin/stats?from&to&page&size&keyword
  * 薪资统计（按学生汇总，自动计算工资）—— 管理员专属
  */
-import { ok, pageParams, clean, toInt, money, minutesToHours, minutesText, bjDate, bjDateOffset } from '../../_lib/util.js';
+import { ok, pageParams, clean, toInt, toFloat, money, minutesToHours, minutesText, bjDate, bjDateOffset } from '../../_lib/util.js';
 
 function bindAll(stmt, args) {
   return args && args.length ? stmt.bind.apply(stmt, args) : stmt;
@@ -27,6 +27,10 @@ export async function onRequestGet(context) {
   }
   const whereSql = 'WHERE ' + where.join(' AND ');
 
+  // 小星星单价（每颗价值，元）
+  const starRow = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind('star_rate').first();
+  const starRate = money(toFloat(starRow && starRow.value, 15));
+
   const groupSql =
     'FROM records r LEFT JOIN work_types w ON w.id = r.work_type_id ' + whereSql +
     ' GROUP BY r.student_no, r.student_name';
@@ -42,6 +46,7 @@ export async function onRequestGet(context) {
       '  COUNT(*) AS cnt, ' +
       '  SUM(r.minutes) AS raw_min, ' +
       '  SUM(COALESCE(r.approved_minutes, r.minutes)) AS acc_min, ' +
+      '  SUM(COALESCE(r.stars, 0)) AS stars, ' +
       '  SUM(COALESCE(r.approved_minutes, r.minutes) * COALESCE(w.rate, 0) / 60.0) AS wage ' +
       groupSql +
       ' ORDER BY wage DESC, r.student_no ASC LIMIT ? OFFSET ?'
@@ -50,6 +55,7 @@ export async function onRequestGet(context) {
   ).all();
 
   const list = (rs.results || []).map(function (r) {
+    const starCnt = toInt(r.stars, 0);
     return {
       student_no: r.student_no,
       student_name: r.student_name,
@@ -59,7 +65,10 @@ export async function onRequestGet(context) {
       acc_minutes: toInt(r.acc_min, 0),
       acc_hours: minutesToHours(r.acc_min),
       acc_text: minutesText(r.acc_min),
-      wage: money(r.wage)
+      stars: starCnt,
+      star_amount: money(starCnt * starRate),
+      wage: money(r.wage),
+      total_amount: money((r.wage || 0) + starCnt * starRate)
     };
   });
 
@@ -68,6 +77,7 @@ export async function onRequestGet(context) {
     env.DB.prepare(
       'SELECT COUNT(*) AS cnt, SUM(r.minutes) AS raw_min, ' +
       ' SUM(COALESCE(r.approved_minutes, r.minutes)) AS acc_min, ' +
+      ' SUM(COALESCE(r.stars, 0)) AS stars, ' +
       ' SUM(COALESCE(r.approved_minutes, r.minutes) * COALESCE(w.rate, 0) / 60.0) AS wage, ' +
       ' COUNT(DISTINCT r.student_no) AS stu_cnt ' +
       'FROM records r LEFT JOIN work_types w ON w.id = r.work_type_id ' + whereSql
@@ -80,6 +90,7 @@ export async function onRequestGet(context) {
     env.DB.prepare(
       'SELECT r.work_type_name AS name, COALESCE(w.rate,0) AS rate, COUNT(*) AS cnt, ' +
       ' SUM(COALESCE(r.approved_minutes, r.minutes)) AS acc_min, ' +
+      ' SUM(COALESCE(r.stars, 0)) AS stars, ' +
       ' SUM(COALESCE(r.approved_minutes, r.minutes) * COALESCE(w.rate,0) / 60.0) AS wage ' +
       'FROM records r LEFT JOIN work_types w ON w.id = r.work_type_id ' + whereSql +
       ' GROUP BY r.work_type_name, w.rate ORDER BY wage DESC'
@@ -91,6 +102,8 @@ export async function onRequestGet(context) {
     "SELECT COUNT(*) AS c FROM records WHERE status = 'approved' AND approved_minutes IS NOT NULL AND approved_minutes <> minutes AND work_date >= ? AND work_date <= ?"
   ).bind(from, to).first();
 
+  const starCntTotal = toInt(totalRow && totalRow.stars, 0);
+
   return ok({
     from: from,
     to: to,
@@ -98,12 +111,16 @@ export async function onRequestGet(context) {
     page: pg.page,
     size: pg.size,
     total: toInt(cnt && cnt.c, 0),
+    star_rate: starRate,
     summary: {
       students: toInt(totalRow && totalRow.stu_cnt, 0),
       records: toInt(totalRow && totalRow.cnt, 0),
       raw_hours: minutesToHours(totalRow && totalRow.raw_min),
       acc_hours: minutesToHours(totalRow && totalRow.acc_min),
       wage: money(totalRow && totalRow.wage),
+      stars: starCntTotal,
+      star_amount: money(starCntTotal * starRate),
+      total_amount: money((totalRow && totalRow.wage || 0) + starCntTotal * starRate),
       adjusted: toInt(adjusted && adjusted.c, 0)
     },
     by_type: (byType.results || []).map(function (r) {
@@ -112,7 +129,10 @@ export async function onRequestGet(context) {
         rate: Number(r.rate) || 0,
         count: toInt(r.cnt, 0),
         acc_hours: minutesToHours(r.acc_min),
-        wage: money(r.wage)
+        stars: toInt(r.stars, 0),
+        star_amount: money(toInt(r.stars, 0) * starRate),
+        wage: money(r.wage),
+        total_amount: money((r.wage || 0) + toInt(r.stars, 0) * starRate)
       };
     })
   });
