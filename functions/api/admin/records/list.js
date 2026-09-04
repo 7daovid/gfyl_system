@@ -43,8 +43,9 @@ export async function onRequestGet(context) {
 
   const rs = await bindAll(
     env.DB.prepare(
-      'SELECT r.*, w.rate AS rate FROM records r ' +
+      'SELECT r.*, w.rate AS rate, s.phone AS student_phone FROM records r ' +
       'LEFT JOIN work_types w ON w.id = r.work_type_id ' +
+      'LEFT JOIN students s ON s.student_no = r.student_no ' +
       whereSql +
       ' ORDER BY r.work_date DESC, r.student_no ASC, r.id ASC LIMIT ? OFFSET ?'
     ),
@@ -59,6 +60,7 @@ export async function onRequestGet(context) {
       id: r.id,
       student_no: r.student_no,
       student_name: r.student_name,
+      student_phone: r.student_phone || '',
       work_date: r.work_date,
       start_time: r.start_time || '',
       end_time: r.end_time || '',

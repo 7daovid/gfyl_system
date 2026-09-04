@@ -134,7 +134,8 @@
 
     return '<div class="item ' + r.status + '" data-row="' + r.id + '">' +
       '<div class="item-h"><div class="item-name">' + App.esc(r.student_name) +
-        '<span class="item-no">' + App.esc(r.student_no) + '</span></div>' +
+        '<span class="item-no">' + App.esc(r.student_no) + '</span>' +
+        (r.student_phone ? '<span class="item-no">📞' + App.esc(r.student_phone) + '</span>' : '') + '</div>' +
         '<span class="badge ' + App.statusClass(r.status) + '">' + App.esc(r.status_text) + '</span></div>' +
       '<div class="item-meta">' +
         '<span>📅 ' + App.esc(r.work_date) + '</span>' +
@@ -260,7 +261,7 @@
   /* ============================================================
      二、名单管理
      ============================================================ */
-  var students = { page: 1, size: 20, total: 0, keyword: '', active: '' };
+  var students = { page: 1, size: 20, total: 0, keyword: '', active: '', reg: '' };
 
   function bindStudents() {
     if (students.bound) return;
@@ -269,20 +270,24 @@
     document.getElementById('st-search').onclick = function () {
       students.keyword = document.getElementById('st-key').value.trim();
       students.active = document.getElementById('st-active').value;
+      students.reg = document.getElementById('st-reg').value;
       students.page = 1; loadStudents();
     };
     document.getElementById('st-add').onclick = function () { openStudentSheet(null); };
+    document.getElementById('st-invite-save').onclick = saveInviteCode;
+    loadInviteCode();
   }
 
   function loadStudents() {
     bindStudents();
     App.get('/api/admin/students/list?page=' + students.page + '&size=' + students.size +
       (students.keyword ? '&keyword=' + encodeURIComponent(students.keyword) : '') +
-      (students.active ? '&active=' + students.active : '')
+      (students.active ? '&active=' + students.active : '') +
+      (students.reg ? '&reg=' + students.reg : '')
     ).then(function (d) {
       students.total = d.total || 0;
       var st = d.stat || {};
-      document.getElementById('st-stat').textContent = '名单总数 ' + (st.total || 0) + ' 人，其中启用 ' + (st.active || 0) + ' 人。';
+      document.getElementById('st-stat').textContent = '名单总数 ' + (st.total || 0) + ' 人，启用 ' + (st.active || 0) + ' 人，待审核 ' + (st.pending || 0) + ' 人。';
 
       var box = document.getElementById('st-list');
       var list = d.list || [];
@@ -295,12 +300,19 @@
           html += '<div class="item">' +
             '<div class="item-h"><div class="item-name">' + App.esc(s.name) +
               '<span class="item-no">' + App.esc(s.student_no) + '</span></div>' +
-              '<span class="badge ' + (s.active ? 'b-approved' : 'b-pending') + '">' + (s.active ? '启用' : '停用') + '</span></div>' +
-            (s.dept ? '<div class="muted mt4">' + App.esc(s.dept) + '</div>' : '') +
-            '<div class="item-foot">' +
-              '<button class="btn btn-sm btn-ghost" data-edit="' + s.id + '">编辑</button>' +
-              '<button class="btn btn-sm btn-line" data-del="' + s.id + '">移除</button>' +
-            '</div></div>';
+              '<span class="badge ' + regBadge(s.reg_status) + '">' + regText(s.reg_status) + '</span>' +
+              (s.active ? '<span class="badge b-approved">启用</span>' : '<span class="badge b-pending">停用</span>') + '</div>' +
+            '<div class="item-meta"><span>' + (s.dept ? App.esc(s.dept) : '未填院系') + '</span>' +
+              (s.phone ? '<span>📞 ' + App.esc(s.phone) + '</span>' : '') + '</div>' +
+            (s.reg_status === 'pending'
+              ? '<div class="item-foot">' +
+                '<button class="btn btn-sm btn-ok" data-appr="' + s.id + '">通过</button>' +
+                '<button class="btn btn-sm btn-danger" data-rej="' + s.id + '">拒绝</button>' +
+                '<button class="btn btn-sm btn-ghost" data-edit="' + s.id + '">编辑</button></div>'
+              : '<div class="item-foot">' +
+                '<button class="btn btn-sm btn-ghost" data-edit="' + s.id + '">编辑</button>' +
+                '<button class="btn btn-sm btn-line" data-del="' + s.id + '">移除</button></div>') +
+            '</div>';
         }
         box.innerHTML = html;
         var eds = document.querySelectorAll('#st-list [data-edit]');
@@ -331,6 +343,18 @@
               });
             };
           })(dels[x]);
+        }
+        var apprs = document.querySelectorAll('#st-list [data-appr]');
+        for (var a = 0; a < apprs.length; a++) {
+          apprs[a].onclick = (function (el) {
+            return function () { reviewStudent(parseInt(el.getAttribute('data-appr'), 10), 'approve'); };
+          })(apprs[a]);
+        }
+        var rejs = document.querySelectorAll('#st-list [data-rej]');
+        for (var b2 = 0; b2 < rejs.length; b2++) {
+          rejs[b2].onclick = (function (el) {
+            return function () { reviewStudent(parseInt(el.getAttribute('data-rej'), 10), 'reject'); };
+          })(rejs[b2]);
         }
       }
       renderStudentPager();
@@ -363,6 +387,7 @@
       '<div class="field"><label>学号</label><input data-no value="' + (isEdit ? App.esc(rec.student_no) : '') + '" placeholder="学号"></div>' +
       '<div class="field"><label>姓名</label><input data-name value="' + (isEdit ? App.esc(rec.name) : '') + '" placeholder="姓名"></div>' +
       '<div class="field"><label>院系（可选）</label><input data-dept value="' + (isEdit ? App.esc(rec.dept) : '') + '" placeholder="院系"></div>' +
+      '<div class="field"><label>联系方式（手机号）</label><input data-phone value="' + (isEdit ? App.esc(rec.phone) : '') + '" placeholder="11 位手机号"></div>' +
       '<div class="field"><label>状态</label><select data-active>' +
         '<option value="1"' + (isEdit ? (rec.active ? ' selected' : '') : ' selected') + '>启用</option>' +
         '<option value="0"' + (isEdit ? (rec.active ? '' : ' selected') : '') + '>停用</option>' +
@@ -376,6 +401,7 @@
         student_no: s.q('[data-no]').value.trim(),
         name: s.q('[data-name]').value.trim(),
         dept: s.q('[data-dept]').value.trim(),
+        phone: s.q('[data-phone]').value.trim(),
         active: parseInt(s.q('[data-active]').value, 10) || 0
       };
       if (isEdit) body.id = rec.id;
@@ -386,6 +412,55 @@
         App.spin(false); s.close(); App.toast('已保存'); loadStudents();
       }).catch(function (e) { App.spin(false); App.toast(e.message); });
     };
+  }
+
+  /* 学生注册审核 / 邀请码 */
+  function reviewStudent(id, action) {
+    if (action === 'approve') {
+      App.confirmBox('通过注册', '通过后该学生即可登录填报。确定继续？').then(function (yes) {
+        if (!yes) return;
+        App.spin(true);
+        App.post('/api/admin/students/review', { id: id, action: 'approve' }).then(function () {
+          App.spin(false); App.toast('已通过，该学生可登录了'); loadStudents();
+        }).catch(function (e) { App.spin(false); App.toast(e.message); });
+      });
+    } else {
+      App.reasonBox('拒绝注册', '请填写拒绝理由（必填，写入不可删除的操作日志）。', '例如：信息不完整').then(function (reason) {
+        if (reason === null) return;
+        App.spin(true);
+        App.post('/api/admin/students/review', { id: id, action: 'reject', reason: reason }).then(function () {
+          App.spin(false); App.toast('已拒绝'); loadStudents();
+        }).catch(function (e) { App.spin(false); App.toast(e.message); });
+      });
+    }
+  }
+
+  function loadInviteCode() {
+    App.get('/api/admin/settings').then(function (d) {
+      var c = d.invite_code || '';
+      document.getElementById('st-invite').value = c;
+      document.getElementById('st-invite-tip').textContent = c
+        ? '当前邀请码：' + c + '（学生凭此码注册）'
+        : '当前未设置邀请码，学生端暂不开放注册';
+    }).catch(function () {});
+  }
+
+  function saveInviteCode() {
+    var code = document.getElementById('st-invite').value.trim();
+    App.reasonBox('设置注册邀请码', '邀请码发给需要注册的学生；留空则关闭自助注册。修改会写入操作日志。', '例如：QZ2026').then(function (reason) {
+      if (reason === null) return;
+      App.spin(true);
+      App.post('/api/admin/settings', { invite_code: code, reason: reason }).then(function () {
+        App.spin(false); App.toast('邀请码已保存'); loadInviteCode();
+      }).catch(function (e) { App.spin(false); App.toast(e.message); });
+    });
+  }
+
+  function regText(s) {
+    return ({ pending: '待审核', approved: '已通过', rejected: '已拒绝' })[s] || '未知';
+  }
+  function regBadge(s) {
+    return ({ pending: 'b-pending', approved: 'b-approved', rejected: 'b-merged' })[s] || 'b-info';
   }
 
   function renderStudentPager() {

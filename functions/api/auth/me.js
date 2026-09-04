@@ -11,10 +11,10 @@ export async function onRequestGet(context) {
 
   if (u.role === 'student') {
     const row = await context.env.DB
-      .prepare('SELECT name, dept, active FROM students WHERE student_no = ?')
+      .prepare('SELECT name, dept, reg_status, active FROM students WHERE student_no = ?')
       .bind(u.studentNo)
       .first();
-    if (!row || Number(row.active) !== 1) return ok({ logged_in: false, reason: '学号已不在名单内' });
+    if (!row || row.reg_status !== 'approved' || Number(row.active) !== 1) return ok({ logged_in: false, reason: '账号不可用，请确认已通过注册审核' });
     return ok({
       logged_in: true,
       role: 'student',

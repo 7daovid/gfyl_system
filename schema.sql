@@ -10,12 +10,15 @@ CREATE TABLE IF NOT EXISTS students (
   student_no  TEXT    NOT NULL UNIQUE,          -- 学号（登录凭证）
   name        TEXT    NOT NULL,                 -- 姓名
   dept        TEXT    NOT NULL DEFAULT '',      -- 院系/岗位部门
+  phone       TEXT    NOT NULL DEFAULT '',      -- 联系方式（手机号，自注册/名单管理维护，仅管理员可见）
+  reg_status  TEXT    NOT NULL DEFAULT 'approved', -- 注册审核状态：approved 可登录 / pending 待审核 / rejected 已拒绝（管理员导入/新建默认 approved）
   active      INTEGER NOT NULL DEFAULT 1,       -- 1 启用 0 停用（停用后不可登录/填报）
   created_ms  INTEGER NOT NULL,
   created_at  TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_students_active ON students(active);
 CREATE INDEX IF NOT EXISTS idx_students_name   ON students(name);
+CREATE INDEX IF NOT EXISTS idx_students_reg    ON students(reg_status);
 
 -- ---------- 2. 工作类型（含小时单价，仅管理员可见） ----------
 CREATE TABLE IF NOT EXISTS work_types (
@@ -93,7 +96,7 @@ BEGIN
   SELECT RAISE(ABORT, '操作日志不可删除');
 END;
 
--- ---------- 5. 系统配置（预留：可在后台改管理员密码哈希等） ----------
+-- ---------- 5. 系统配置（预留：可在后台改管理员密码哈希、注册邀请码等） ----------
 CREATE TABLE IF NOT EXISTS settings (
   key        TEXT PRIMARY KEY,
   value      TEXT NOT NULL DEFAULT '',

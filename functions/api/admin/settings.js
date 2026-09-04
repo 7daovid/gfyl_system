@@ -19,7 +19,8 @@ async function getSetting(env, key, def) {
 export async function onRequestGet(context) {
   const env = context.env;
   const starRate = money(toFloat(await getSetting(env, 'star_rate', '15'), 15));
-  return ok({ star_rate: starRate });
+  const inviteCode = String(await getSetting(env, 'invite_code', ''));
+  return ok({ star_rate: starRate, invite_code: inviteCode });
 }
 
 export async function onRequestPost(context) {
@@ -52,6 +53,28 @@ export async function onRequestPost(context) {
       ip: clientIp(context.request)
     });
     out.star_rate = rate;
+  }
+
+  // 注册邀请码
+  if (body.invite_code !== undefined) {
+    const code = clean(String(body.invite_code), 40);
+    const oldCode = String(await getSetting(env, 'invite_code', ''));
+    await env.DB.prepare(
+      'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ' +
+      'ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at'
+    ).bind('invite_code', code, nowText).run();
+    await writeLog(env, {
+      operator: admin.name || '管理员',
+      role: 'admin',
+      action: ACTION.SETTING_UPDATE,
+      targetType: 'system',
+      targetId: 'invite_code',
+      oldValue: '注册邀请码 ' + (oldCode || '(未设置)'),
+      newValue: '注册邀请码 ' + (code || '(已清空，暂不开放注册)'),
+      reason: clean(body.reason, 200),
+      ip: clientIp(context.request)
+    });
+    out.invite_code = code;
   }
 
   return ok(out);

@@ -37,6 +37,7 @@ export async function onRequestPost(context) {
     const no = clean(cols[0], 40);
     const name = clean(cols[1], 40) || ('学生' + no.slice(-4));
     const dept = clean(cols[2], 60);
+    const phone = clean(cols[3], 20);
 
     if (!/^[A-Za-z0-9_-]{4,40}$/.test(no)) {
       errors.push('第 ' + (i + 1) + ' 行学号格式不正确：' + raw.slice(0, 30));
@@ -47,7 +48,7 @@ export async function onRequestPost(context) {
       continue;
     }
     seen[no] = 1;
-    items.push({ no: no, name: name, dept: dept });
+    items.push({ no: no, name: name, dept: dept, phone: phone });
 
     if (items.length > MAX_ROWS) throw new ApiError('单次导入最多 ' + MAX_ROWS + ' 条，请分批导入', 400);
   }
@@ -69,13 +70,14 @@ export async function onRequestPost(context) {
     const chunk = items.slice(s, s + CHUNK);
     const stmts = chunk.map(function (it) {
       return env.DB.prepare(
-        `INSERT INTO students (student_no, name, dept, active, created_ms, created_at)
-         VALUES (?, ?, ?, 1, ?, ?)
+        `INSERT INTO students (student_no, name, dept, phone, reg_status, active, created_ms, created_at)
+         VALUES (?, ?, ?, ?, 'approved', 1, ?, ?)
          ON CONFLICT(student_no) DO UPDATE SET
             name = excluded.name,
             dept = CASE WHEN excluded.dept <> '' THEN excluded.dept ELSE students.dept END,
+            phone = CASE WHEN excluded.phone <> '' THEN excluded.phone ELSE students.phone END,
             active = 1`
-      ).bind(it.no, it.name, it.dept, now, nowText);
+      ).bind(it.no, it.name, it.dept, it.phone, now, nowText);
     });
     await env.DB.batch(stmts);
     inserted += chunk.length;

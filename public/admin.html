@@ -50,9 +50,16 @@
   <!-- ============ 名单 ============ -->
   <section id="v-students" class="hide">
     <div class="card">
+      <div class="card-t">🔑 注册邀请码</div>
+      <div class="card-tip">学生凭邀请码自助注册（填写邀请码 / 姓名 / 学号 / 手机号），注册后需你审核通过才能登录，减轻老师逐个录入的负担。</div>
+      <div class="field" style="margin:0"><label>邀请码</label><input id="st-invite" placeholder="留空 = 暂不开放注册"></div>
+      <button class="btn btn-block mt8" id="st-invite-save">保存邀请码</button>
+      <div class="muted mt8" id="st-invite-tip"></div>
+    </div>
+    <div class="card">
       <div class="card-t">批量导入白名单</div>
-      <div class="card-tip">每行一条，格式：学号,姓名,院系（姓名与院系可省略）。仅名单内学号可登录填报。</div>
-      <textarea id="st-text" style="min-height:120px" placeholder="20230001,张三,计算机学院&#10;20230002,李四&#10;20230003"></textarea>
+      <div class="card-tip">每行一条，格式：学号,姓名,院系,手机号（姓名/院系/手机号可省略）。仅名单内学号可登录填报。</div>
+      <textarea id="st-text" style="min-height:120px" placeholder="20230001,张三,计算机学院,13800138000&#10;20230002,李四&#10;20230003"></textarea>
       <div class="field mt8">
         <label>导入模式</label>
         <select id="st-mode">
@@ -67,14 +74,20 @@
       <div class="card-t">名单管理</div>
       <div class="card-tip" id="st-stat"></div>
       <div class="row2">
-        <input type="text" id="st-key" placeholder="搜索学号 / 姓名 / 院系">
+        <input type="text" id="st-key" placeholder="搜索学号 / 姓名 / 院系 / 手机号">
+        <select id="st-reg">
+          <option value="">全部注册</option>
+          <option value="pending">待审核</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">已拒绝</option>
+        </select>
+      </div>
+      <div class="row2 mt8">
         <select id="st-active">
           <option value="">全部状态</option>
           <option value="1">仅启用</option>
           <option value="0">仅停用</option>
         </select>
-      </div>
-      <div class="btn-row mt8">
         <button class="btn btn-sm" id="st-search">查询</button>
         <button class="btn btn-sm btn-ghost" id="st-add">单个新增</button>
       </div>

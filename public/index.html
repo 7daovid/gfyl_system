@@ -35,8 +35,9 @@
       <input type="text" id="sno" inputmode="numeric" autocomplete="off" placeholder="请输入本人学号">
     </div>
     <button class="btn btn-block btn-lg" id="btn-stu">进入填报</button>
+    <button class="btn btn-block btn-ghost mt8" id="btn-reg">没有账号？立即注册</button>
     <div class="notice mt14">
-      提示：登录后可以填报工时、查看个人记录，并在「公开广场」浏览全体同学的原始填报记录，互相监督。
+      提示：登录后可以填报工时、查看个人记录，并在「公开广场」浏览全体同学的原始填报记录，互相监督。首次使用请先注册，审核通过后即可登录。
     </div>
   </div>
 
@@ -104,6 +105,41 @@
 
   document.getElementById('btn-stu').onclick = loginStudent;
   document.getElementById('btn-admin').onclick = loginAdmin;
+
+  /* ---------------- 学生自助注册 ---------------- */
+  document.getElementById('btn-reg').onclick = openRegister;
+
+  function openRegister() {
+    var s = App.sheet(
+      '<div class="sheet-t">学生自助注册</div>' +
+      '<p class="sheet-sub">填写信息并提交，通过老师审核后即可登录打卡。</p>' +
+      '<div class="field"><label>邀请码 <span class="req">*</span></label><input data-r-invite placeholder="向老师索取注册邀请码"></div>' +
+      '<div class="field"><label>姓名 <span class="req">*</span></label><input data-r-name placeholder="本人真实姓名"></div>' +
+      '<div class="field"><label>学号 <span class="req">*</span></label><input data-r-no placeholder="本人学号"></div>' +
+      '<div class="field"><label>联系方式（手机号） <span class="req">*</span></label><input data-r-phone type="tel" maxlength="11" placeholder="11 位手机号"></div>' +
+      '<div class="btn-row mt14"><button class="btn btn-line" style="flex:1" data-cancel>取消</button>' +
+      '<button class="btn" style="flex:1" data-submit>提交注册</button></div>'
+    );
+    s.q('[data-cancel]').onclick = s.close;
+    s.q('[data-submit]').onclick = function () {
+      var invite = s.q('[data-r-invite]').value.trim();
+      var name = s.q('[data-r-name]').value.trim();
+      var no = s.q('[data-r-no]').value.trim();
+      var phone = s.q('[data-r-phone]').value.trim();
+      if (!invite) { App.toast('请输入邀请码'); return; }
+      if (!name) { App.toast('请输入姓名'); return; }
+      if (!no) { App.toast('请输入学号'); return; }
+      if (!/^1\d{10}$/.test(phone)) { App.toast('请填写正确的 11 位手机号'); return; }
+      App.spin(true);
+      App.post('/api/auth/register', { invite_code: invite, name: name, student_no: no, phone: phone }).then(function () {
+        App.spin(false); s.close();
+        App.toast('注册申请已提交，请等待老师审核通过后登录', 3200);
+      }).catch(function (e) {
+        App.spin(false);
+        App.toast(e.message || '注册失败');
+      });
+    };
+  }
   sno.addEventListener('keydown', function (e) { if (e.key === 'Enter') loginStudent(); });
   pwd.addEventListener('keydown', function (e) { if (e.key === 'Enter') loginAdmin(); });
 

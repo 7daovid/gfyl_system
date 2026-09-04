@@ -111,10 +111,11 @@ export async function requireStudent(request, env) {
  */
 export async function assertWhitelisted(env, studentNo) {
   const row = await env.DB
-    .prepare('SELECT student_no, name, active FROM students WHERE student_no = ?')
+    .prepare('SELECT student_no, name, reg_status, active FROM students WHERE student_no = ?')
     .bind(studentNo)
     .first();
   if (!row) throw new ApiError('该学号不在勤工助学名单内，无法提交', 403);
+  if (row.reg_status !== 'approved') throw new ApiError('您的账号尚未通过注册审核，暂无法提交', 403);
   if (Number(row.active) !== 1) throw new ApiError('该学号已被停用，如有疑问请联系管理员', 403);
   return row;
 }
