@@ -236,13 +236,10 @@
   function doRemove(id) {
     App.confirmBox('移除记录', '确定要移除这条填报记录吗？该操作不可恢复，但会留下永久操作日志。').then(function (yes) {
       if (!yes) return;
-      App.reasonBox('移除理由', '请填写移除理由（必填，写入不可删除的操作日志）。', '例如：重复填报、录入错误').then(function (reason) {
-        if (reason === null) return;
-        App.spin(true);
-        App.post('/api/admin/records/delete', { id: id, reason: reason }).then(function () {
-          App.spin(false); App.toast('已移除'); loadReview();
-        }).catch(function (e) { App.spin(false); App.toast(e.message); });
-      });
+      App.spin(true);
+      App.post('/api/admin/records/delete', { id: id }).then(function () {
+        App.spin(false); App.toast('已移除'); loadReview();
+      }).catch(function (e) { App.spin(false); App.toast(e.message); });
     });
   }
 
@@ -266,7 +263,6 @@
   function bindStudents() {
     if (students.bound) return;
     students.bound = true;
-    document.getElementById('st-import').onclick = importStudents;
     document.getElementById('st-search').onclick = function () {
       students.keyword = document.getElementById('st-key').value.trim();
       students.active = document.getElementById('st-active').value;
@@ -302,8 +298,7 @@
               '<span class="item-no">' + App.esc(s.student_no) + '</span></div>' +
               '<span class="badge ' + regBadge(s.reg_status) + '">' + regText(s.reg_status) + '</span>' +
               (s.active ? '<span class="badge b-approved">启用</span>' : '<span class="badge b-pending">停用</span>') + '</div>' +
-            '<div class="item-meta"><span>' + (s.dept ? App.esc(s.dept) : '未填院系') + '</span>' +
-              (s.phone ? '<span>📞 ' + App.esc(s.phone) + '</span>' : '') + '</div>' +
+            '<div class="item-meta">' + (s.phone ? '<span>📞 ' + App.esc(s.phone) + '</span>' : '<span>未填联系方式</span>') + '</div>' +
             (s.reg_status === 'pending'
               ? '<div class="item-foot">' +
                 '<button class="btn btn-sm btn-ok" data-appr="' + s.id + '">通过</button>' +
@@ -333,13 +328,10 @@
               var id = parseInt(el.getAttribute('data-del'), 10);
               App.confirmBox('移出白名单', '有填报记录的学号只会停用（保留历史），无记录的会彻底移除。确定继续？').then(function (yes) {
                 if (!yes) return;
-                App.reasonBox('移除理由', '请填写移出白名单的理由（写入操作日志）。', '例如：已毕业离岗').then(function (reason) {
-                  if (reason === null) return;
-                  App.spin(true);
-                  App.post('/api/admin/students/delete', { id: id, reason: reason }).then(function () {
-                    App.spin(false); App.toast('已处理'); loadStudents();
-                  }).catch(function (e2) { App.spin(false); App.toast(e2.message); });
-                });
+                App.spin(true);
+                App.post('/api/admin/students/delete', { id: id }).then(function () {
+                  App.spin(false); App.toast('已处理'); loadStudents();
+                }).catch(function (e2) { App.spin(false); App.toast(e2.message); });
               });
             };
           })(dels[x]);
@@ -361,32 +353,12 @@
     }).catch(function (e) { App.toast(e.message); });
   }
 
-  function importStudents() {
-    var text = document.getElementById('st-text').value;
-    var mode = document.getElementById('st-mode').value;
-    if (!text.trim()) { App.toast('请粘贴名单内容'); return; }
-    App.confirmBox('确认导入', '共将解析文本框内所有行，模式：' + (mode === 'replace' ? '覆盖（先停用旧名单）' : '追加/更新') + '。继续？')
-      .then(function (yes) {
-        if (!yes) return;
-        App.spin(true);
-        App.post('/api/admin/students/import', { text: text, mode: mode }).then(function (d) {
-          App.spin(false);
-          var msg = '成功导入 ' + d.inserted + ' 条';
-          if (d.error_count) msg += '，' + d.error_count + ' 行有误（如：' + (d.errors[0] || '') + '）';
-          App.toast(msg, 3200);
-          document.getElementById('st-text').value = '';
-          loadStudents();
-        }).catch(function (e) { App.spin(false); App.toast(e.message); });
-      });
-  }
-
   function openStudentSheet(rec) {
     var isEdit = !!rec;
     var s = App.sheet(
       '<div class="sheet-t">' + (isEdit ? '编辑名单' : '新增白名单') + '</div>' +
       '<div class="field"><label>学号</label><input data-no value="' + (isEdit ? App.esc(rec.student_no) : '') + '" placeholder="学号"></div>' +
       '<div class="field"><label>姓名</label><input data-name value="' + (isEdit ? App.esc(rec.name) : '') + '" placeholder="姓名"></div>' +
-      '<div class="field"><label>院系（可选）</label><input data-dept value="' + (isEdit ? App.esc(rec.dept) : '') + '" placeholder="院系"></div>' +
       '<div class="field"><label>联系方式（手机号）</label><input data-phone value="' + (isEdit ? App.esc(rec.phone) : '') + '" placeholder="11 位手机号"></div>' +
       '<div class="field"><label>状态</label><select data-active>' +
         '<option value="1"' + (isEdit ? (rec.active ? ' selected' : '') : ' selected') + '>启用</option>' +
@@ -400,7 +372,6 @@
       var body = {
         student_no: s.q('[data-no]').value.trim(),
         name: s.q('[data-name]').value.trim(),
-        dept: s.q('[data-dept]').value.trim(),
         phone: s.q('[data-phone]').value.trim(),
         active: parseInt(s.q('[data-active]').value, 10) || 0
       };
@@ -425,10 +396,10 @@
         }).catch(function (e) { App.spin(false); App.toast(e.message); });
       });
     } else {
-      App.reasonBox('拒绝注册', '请填写拒绝理由（必填，写入不可删除的操作日志）。', '例如：信息不完整').then(function (reason) {
-        if (reason === null) return;
+      App.confirmBox('拒绝注册', '拒绝后该学生不可登录，可修改资料重新提交。确定继续？').then(function (yes) {
+        if (!yes) return;
         App.spin(true);
-        App.post('/api/admin/students/review', { id: id, action: 'reject', reason: reason }).then(function () {
+        App.post('/api/admin/students/review', { id: id, action: 'reject' }).then(function () {
           App.spin(false); App.toast('已拒绝'); loadStudents();
         }).catch(function (e) { App.spin(false); App.toast(e.message); });
       });
@@ -447,13 +418,10 @@
 
   function saveInviteCode() {
     var code = document.getElementById('st-invite').value.trim();
-    App.reasonBox('设置注册邀请码', '邀请码发给需要注册的学生；留空则关闭自助注册。修改会写入操作日志。', '例如：QZ2026').then(function (reason) {
-      if (reason === null) return;
-      App.spin(true);
-      App.post('/api/admin/settings', { invite_code: code, reason: reason }).then(function () {
-        App.spin(false); App.toast('邀请码已保存'); loadInviteCode();
-      }).catch(function (e) { App.spin(false); App.toast(e.message); });
-    });
+    App.spin(true);
+    App.post('/api/admin/settings', { invite_code: code }).then(function () {
+      App.spin(false); App.toast('邀请码已保存'); loadInviteCode();
+    }).catch(function (e) { App.spin(false); App.toast(e.message); });
   }
 
   function regText(s) {
@@ -486,14 +454,11 @@
       document.getElementById('star-save').onclick = function () {
         var v = parseFloat(document.getElementById('star-rate').value);
         if (isNaN(v) || v < 0) { App.toast('请输入有效的小星星单价'); return; }
-        App.reasonBox('修改小星星单价', '单价属于金额配置，修改会写入不可删除的操作日志。', '例如：每颗奖励 15 元').then(function (reason) {
-          if (reason === null) return;
-          App.spin(true);
-          App.post('/api/admin/settings', { star_rate: v, reason: reason }).then(function (d) {
-            App.spin(false); App.toast('小星星单价已更新为 ' + d.star_rate + ' 元/颗');
-            loadStarSettings();
-          }).catch(function (e) { App.spin(false); App.toast(e.message); });
-        });
+        App.spin(true);
+        App.post('/api/admin/settings', { star_rate: v }).then(function (d) {
+          App.spin(false); App.toast('小星星单价已更新为 ' + d.star_rate + ' 元/颗');
+          loadStarSettings();
+        }).catch(function (e) { App.spin(false); App.toast(e.message); });
       };
     }
     App.get('/api/admin/settings').then(function (d) {
@@ -544,10 +509,10 @@
         dels[x].onclick = (function (el) {
           return function () {
             var id = parseInt(el.getAttribute('data-del'), 10);
-            App.reasonBox('删除 / 停用工种', '有历史填报引用的工种只会停用（保留数据），无引用的可彻底删除。请填写理由。', '例如：该岗位已取消').then(function (reason) {
-              if (reason === null) return;
+            App.confirmBox('删除 / 停用工种', '有历史填报引用的工种只会停用（保留数据），无引用的可彻底删除。确定继续？').then(function (yes2) {
+              if (!yes2) return;
               App.spin(true);
-              App.post('/api/admin/work-types/delete', { id: id, reason: reason }).then(function () {
+              App.post('/api/admin/work-types/delete', { id: id }).then(function () {
                 App.spin(false); App.toast('已处理'); loadWorkTypes();
               }).catch(function (e2) { App.spin(false); App.toast(e2.message); });
             });

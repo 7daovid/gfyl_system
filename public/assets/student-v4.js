@@ -17,7 +17,7 @@
   App.guard('student').then(function (d) {
     if (!d) return;
     me = d;
-    document.getElementById('who').textContent = d.name + ' · ' + d.student_no + (d.dept ? ' · ' + d.dept : '');
+    document.getElementById('who').textContent = d.name + ' · ' + d.student_no;
     document.getElementById('f-date').value = App.todayStr();
     document.getElementById('f-date').max = App.todayStr();
     bind();

@@ -81,11 +81,6 @@ export async function onRequestPost(context) {
   if (accMin < 0) throw new ApiError('核算工时不能为负', 400);
 
   const changed = accMin !== rawMin || newMinutes !== null;
-  // ★ 核心风控：工时与学生填报不一致，必须有修改理由
-  if (changed && !reason) {
-    const to = newMinutes !== null ? minutesText(newMinutes) : minutesText(accMin);
-    throw new ApiError('工时与学生填报不一致（' + minutesText(rawMin) + ' → ' + to + '），必须填写修改理由', 400);
-  }
 
   // 标记「已调整」：时段变化 或 核算≠原始填报
   const adjusted = accMin !== rawMin || newMinutes !== null;

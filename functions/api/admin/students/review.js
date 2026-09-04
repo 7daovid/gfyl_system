@@ -22,7 +22,6 @@ export async function onRequestPost(context) {
 
   if (!id) throw new ApiError('缺少记录 id', 400);
   if (action !== 'approve' && action !== 'reject') throw new ApiError('不支持的操作', 400);
-  if (action === 'reject' && !reason) throw new ApiError('拒绝注册必须填写理由（写入操作日志）', 400);
 
   const stu = await env.DB.prepare('SELECT * FROM students WHERE id = ?').bind(id).first();
   if (!stu) throw new ApiError('学生不存在', 404);

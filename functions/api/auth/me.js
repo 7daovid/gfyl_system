@@ -11,7 +11,7 @@ export async function onRequestGet(context) {
 
   if (u.role === 'student') {
     const row = await context.env.DB
-      .prepare('SELECT name, dept, reg_status, active FROM students WHERE student_no = ?')
+      .prepare('SELECT name, reg_status, active FROM students WHERE student_no = ?')
       .bind(u.studentNo)
       .first();
     if (!row || row.reg_status !== 'approved' || Number(row.active) !== 1) return ok({ logged_in: false, reason: '账号不可用，请确认已通过注册审核' });
@@ -19,8 +19,7 @@ export async function onRequestGet(context) {
       logged_in: true,
       role: 'student',
       student_no: u.studentNo,
-      name: row.name,
-      dept: row.dept || ''
+      name: row.name
     });
   }
 
