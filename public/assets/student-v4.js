@@ -173,6 +173,7 @@
     starMinus.textContent = '−';
     var starNum = document.createElement('span');
     starNum.className = 'star-num';
+    starNum.setAttribute('data-star-num', '');
     starNum.textContent = '0';
     var starPlus = document.createElement('button');
     starPlus.type = 'button';
